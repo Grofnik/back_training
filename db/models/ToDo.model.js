@@ -18,6 +18,10 @@ ToDo.init(
             type: Sequelize.STRING,
             defaultValue: '',
         },
+        doing: {
+            type: Sequelize.BOOLEAN,
+            defaultValue: 'False',
+        },
     },
     { sequelize: sequelize, underscored: true, modelName: 'todo' }
 );

@@ -15,6 +15,7 @@ app.use((req, res, next) => {
   console.log('Original_URL = ', req.originalUrl);
   next();
 });
+
 app.all('/sum', (req, res) => {
   const firstNum = req.query.firstNum;
   const secondNum = req.query.secondNum;
@@ -83,6 +84,10 @@ app.get('/todos/:id', async(req, res)=>{
   return res.status(200).json(task);
 });
 
+app.post('', async(req, res) => {
+
+});
+
 app.post('/todos/import', async(req, res)=>{
   let bodyExample = {
     title: "wertt",
@@ -99,7 +104,8 @@ app.patch('/todos/:id', async(req, res)=>{
   const task=await ToDo.update(
     {
       title: req.body.title,
-      description: req.body.description
+      description: req.body.description,
+      doing: req.body.doing
     },{
     where: {
       id: req.params.id
