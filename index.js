@@ -104,8 +104,7 @@ app.patch('/todos/:id', async(req, res)=>{
   const task=await ToDo.update(
     {
       title: req.body.title,
-      description: req.body.description,
-      doing: req.body.doing
+      description: req.body.description
     },{
     where: {
       id: req.params.id
