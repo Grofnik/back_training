@@ -29,5 +29,5 @@ jobs:
       - name: Run a one-line script
         run: |
             npm install eslint  
-            npx eslint index.js
-            npx eslint db/index.js
+            npx eslint back_training/index.js
+            npx eslint back_training/db/index.js
