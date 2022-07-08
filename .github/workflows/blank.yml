@@ -29,5 +29,5 @@ jobs:
       - name: Run a one-line script
         run: |
             npm install eslint  
-            npx eslint back_training/index.js
-            npx eslint back_training/db/index.js
+            npx eslint Grofnik/back_training/index.js
+            npx eslint Grofnik/back_training/db/index.js
