@@ -1,0 +1,11 @@
+{
+    "env": {
+        "browser": true,
+        "es2021": true
+    },
+    "rules": {
+        "no-constructor-return": 2,
+        "no-duplicate-case": 1,
+        "no-dupe-else-if": 1
+    }
+}
