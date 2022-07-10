@@ -5,6 +5,8 @@ const ToDo = require('./db/models/ToDo.model');
 const users = require('./db/models/users.model');
 const { initDB } = require('./db');
 const app = express();
+const bcrypt = require('bcrypt');
+const { Console } = require('console');
 
 app.use(cors());
 app.use(express.urlencoded({ extended: true }));
@@ -17,36 +19,58 @@ app.use((req, res, next) => {
   next();
 });
 
-app.post("/todos/registration", function(req,res){
+//регистрация
+app.post("/todos/registration", async(req,res)=>{
+  const name = req.body.name;
   const mail = req.body.mail;
-  const password = req.body.password;
-  users.create({
-    mail,
-    password,
-  }).then((result) => {
-    console.log(result);
-    res.json(result);
-  }).catch((error) => { 
-    console.log(error)
-    res.status(500).json({error});
-  });
+  const salt = await bcrypt.genSalt(10);
+  const password = await bcrypt.hash(req.body.password, salt)
+  const user = await users.findOne(
+    {
+      where:{
+        mail: req.body.mail
+      }
+    }
+  )
+  
+  if(!user){
+     await users.create({
+        name,
+        mail,
+        password,
+      }).then(result => { 
+      console.log(users)
+      res.status(200).json(users)
+      }).catch((error) => { 
+        console.log(error)
+        res.status(500).json({error});
+    });
+  }
+  else 
+    res.status(400).json("Mail was already exist")
 })
-
-app.post("/todos/login", function(req, res)
+// авторизация
+app.post("/todos/login", async(req, res) =>
 {
-const results= NULL;
-results = users.findAll(
+const user = await users.findOne(
   {
     where:{
-      mail: req.body.mail,
-      password: req.body.password
+      mail: req.body.mail
     }
   }
 )
-if (results)
-  return true;
-else  
-  return false;
+if (user)
+{
+  const password_valid = await bcrypt.compare(req.body.password, user.password)
+  if(password_valid)
+    res.status(200).json({error: 'Everything ok'});
+  else
+    res.status(404).json({error: 'Invalid login or password'})
+}
+else
+{
+  res.status(404).json({error:'Invalid login or password'})
+}
 })
 
 app.post("/api/todos", function (req, response) {
