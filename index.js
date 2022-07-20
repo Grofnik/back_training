@@ -1,12 +1,17 @@
 const express = require('express');
+const Sequelize = require('sequelize');
 const http = require('http');
 const cors = require('cors');
 const ToDo = require('./db/models/ToDo.model');
 const users = require('./db/models/users.model');
+const tokens = require('./db/models/token.model');
 const { initDB } = require('./db');
 const app = express();
 const bcrypt = require('bcrypt');
 const { Console } = require('console');
+const crypto = require('crypto');
+
+users.hasMany(tokens, {foreignKey: {name: 'id', type: Sequelize.DataTypes.UUID}})
 
 app.use(cors());
 app.use(express.urlencoded({ extended: true }));
@@ -20,24 +25,29 @@ app.use((req, res, next) => {
 });
 
 //регистрация
-app.post("/todos/registration", async(req,res)=>{
-  const name = req.body.name;
+app.post("/api/registration", async(req,res)=>{
+  const password = req.body.password;
+  const login = req.body.login;
   const mail = req.body.mail;
-  const salt = await bcrypt.genSalt(10);
-  const password = await bcrypt.hash(req.body.password, salt)
-  const user = await users.findOne(
+  const mail1 = await users.findOne(
     {
       where:{
         mail: req.body.mail
       }
     }
   )
-  
-  if(!user){
+  const login1 = await users.findOne(
+    {
+      where:{
+        login: req.body.login
+      }
+    }
+  )
+  if((!mail1) && (!login1)){
      await users.create({
-        name,
+        login,
         mail,
-        password,
+        password
       }).then(result => { 
       console.log(users)
       res.status(200).json(users)
@@ -46,11 +56,14 @@ app.post("/todos/registration", async(req,res)=>{
         res.status(500).json({error});
     });
   }
-  else 
+  else if(!mail1)
+    res.status(400).json("Login was already exist")
+  else  
     res.status(400).json("Mail was already exist")
 })
+
 // авторизация
-app.post("/todos/login", async(req, res) =>
+app.post("/api/login", async(req, res) =>
 {
 const user = await users.findOne(
   {
@@ -59,19 +72,62 @@ const user = await users.findOne(
     }
   }
 )
+// const login = await users.indOne(
+//   {
+//     where:{
+//       login: req.body.login
+//     }
+//   }
+// )
 if (user)
 {
-  const password_valid = await bcrypt.compare(req.body.password, user.password)
-  if(password_valid)
-    res.status(200).json({error: 'Everything ok'});
+  if(req.body.password === user.password)
+    {
+      const token = crypto.randomBytes(31).toString('hex')
+      const user_id=user.id
+      await tokens.create({
+        user_id: user_id,
+        token: token
+      }).then(result => { 
+        console.log(tokens)
+        res.status(200).json(tokens)
+        }).catch((error) => { 
+          console.log(error)
+          res.status(500).json({error});
+      });
+
+    }
   else
-    res.status(404).json({error: 'Invalid login or password'})
+    res.status(404).json({error: 'Invalid login  or password'})
 }
 else
 {
   res.status(404).json({error:'Invalid login or password'})
 }
 })
+
+// проверка валидности токена
+app.post("/api/token-check", async(req, res) =>
+{
+  access_token=req.get('x-access-token')
+  if(access_token){
+    const result = await tokens.findOne(
+      {
+        where:{
+          token: access_token
+        }
+      }
+    )
+    if(result)
+      res.status(200).json("Token is valid")
+    else
+      res.status(403).json("Token is not valid")
+  }
+  else
+    res.status(401).json("No Access-Token")
+})
+//сброс пароля
+app.post ("/api/reset_password")
 
 app.post("/api/todos", function (req, response) {
   const title = req.body.title;
@@ -90,6 +146,7 @@ app.post("/api/todos", function (req, response) {
   });
 
 });
+
 
 app.get('/todos', async(req, res)=>{
   const results = await ToDo.findAll()
