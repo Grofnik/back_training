@@ -239,7 +239,8 @@ app.get('/api/:id', async(req, res)=>{
   })
   console.log(task)
   return res.status(200).json(task);
-};
+}
+});
 
 //добавить ToDo
 app.post('/api/import', async(req, res)=>{
@@ -290,5 +291,3 @@ http.createServer(app).listen(3001, () => {
 })
 
 
-
-// promises, async/await, asynchandler
