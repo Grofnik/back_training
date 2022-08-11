@@ -22,6 +22,9 @@ ToDo.init(
             type: Sequelize.BOOLEAN,
             defaultValue: 'False',
         },
+        time:{
+            type: Sequelize.TIME,
+        }
     },
     { sequelize: sequelize, underscored: true, modelName: 'todo' }
 );

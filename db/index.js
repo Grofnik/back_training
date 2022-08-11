@@ -1,7 +1,9 @@
 const Sequelize = require("sequelize");
+
+
 const sequelize = new Sequelize({
   dialect: "postgres",
-  host: "194.67.109.118",
+  host: "80.78.251.155",
   port: "6001",
   username: "postgres",
   password: "postgres",
@@ -21,6 +23,7 @@ const initDB = async () => {
     process.exit();
   }
 };
+
 
 module.exports = {
   sequelize,

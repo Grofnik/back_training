@@ -1,5 +1,5 @@
 const express = require('express');
-const Sequelize = require('sequelize');
+const {Sequelize,Op} = require('sequelize');
 const http = require('http');
 const cors = require('cors');
 const ToDo = require('./db/models/ToDo.model');
@@ -12,6 +12,7 @@ const { Console } = require('console');
 const crypto = require('crypto');
 
 users.hasMany(tokens, {foreignKey: {name: 'id', type: Sequelize.DataTypes.UUID}})
+users.hasMany(ToDo, {foreignKey:{name: 'id'}})
 
 app.use(cors());
 app.use(express.urlencoded({ extended: true }));
@@ -68,17 +69,14 @@ app.post("/api/login", async(req, res) =>
 const user = await users.findOne(
   {
     where:{
-      mail: req.body.mail
+      [Op.or]: [
+        {mail: req.body.mail},
+        {login: req.body.mail}
+      ]
     }
   }
 )
-// const login = await users.indOne(
-//   {
-//     where:{
-//       login: req.body.login
-//     }
-//   }
-// )
+
 if (user)
 {
   if(req.body.password === user.password)
@@ -90,12 +88,11 @@ if (user)
         token: token
       }).then(result => { 
         console.log(tokens)
-        res.status(200).json(tokens)
+        res.status(200).json({token: token})
         }).catch((error) => { 
           console.log(error)
           res.status(500).json({error});
       });
-
     }
   else
     res.status(404).json({error: 'Invalid login  or password'})
@@ -114,7 +111,7 @@ app.post("/api/token-check", async(req, res) =>
     const result = await tokens.findOne(
       {
         where:{
-          token: access_token
+          token: access_token          
         }
       }
     )
@@ -126,8 +123,73 @@ app.post("/api/token-check", async(req, res) =>
   else
     res.status(401).json("No Access-Token")
 })
-//сброс пароля
-app.post ("/api/reset_password")
+//смена пароля
+app.post ("/api/reset_password", async(req,res)=>
+{
+  let req_mail=req.body.mail
+  let req_login=req.body.login
+  
+
+  const user = await users.findOne(
+    {
+      where: {
+        [Op.or]: [
+          {mail: req_mail},
+          {login: req_login}
+        ]
+      }
+    }
+  );
+  if(user)
+  {
+
+  }
+  else  
+    res.status(400).json("no such user")
+
+
+  
+//res.status(200).json('success');
+  // if(req_mail){
+  
+  // const token = crypto.randomBytes(31).toString('hex')
+  // if(mail)
+  //   {
+  //     const task=await tokens.destroy(
+  //       {
+  //       where: {
+  //         user_id: mail.id
+  //       }
+  //     })
+  //   }
+  // }
+
+  // if (req_login){
+  // login = await users.findOne(
+  //   {
+  //     where:{
+  //       login: req_login
+  //     }
+  //   }
+  // )
+  // const token = crypto.randomBytes(31).toString('hex')
+  // if(login && !mail)
+  //   {
+  //     const task=await tokens.destroy(
+  //       {
+  //       where: {
+  //         user_id: login.id
+  //       }
+  //     })
+  //   }
+  // }
+  // if(user)
+  // {
+  //   res.status(200).json(user, "Password was reset")
+  // }
+  // else 
+  //   res.status(400).json(user,"User not found")
+})
 
 app.post("/api/todos", function (req, response) {
   const title = req.body.title;
@@ -147,24 +209,40 @@ app.post("/api/todos", function (req, response) {
 
 });
 
-
+//достать все ToDo пользователя
 app.get('/todos', async(req, res)=>{
-  const results = await ToDo.findAll()
+
+
+  const results = await ToDo.findAll(
+    {
+            where: {
+              user_id: req.body.id
+            }
+    }
+  )
   return res.status(200).json(results);
 });
 
-app.get('/todos/:id', async(req, res)=>{
-  const task=await ToDo.findAll(
-    {
-      where: {
-        id: req.params.id
+//достать ToDo по ID
+app.get('/api/:id', async(req, res)=>{
+  access_token=req.get('x-access-token')
+  if(access_token){
+    const result = await tokens.findOne(
+      {
+        where:{
+          token: access_token          
+        }
       }
-    }
-  )
+    )
+  const task=await result.findByPk(result.id, {
+    include: ToDo
+  })
+  console.log(task)
   return res.status(200).json(task);
-});
+};
 
-app.post('/todos/import', async(req, res)=>{
+//добавить ToDo
+app.post('/api/import', async(req, res)=>{
   if ((typeof req.body.title) !== "string" || (typeof req.body.description) !== "string") {
   return res.status(400).json({ message: 'field title was not sent.'});
   }
@@ -172,19 +250,21 @@ app.post('/todos/import', async(req, res)=>{
   res.status(200).json(todo);
   });
 
-app.patch('/todos/:id', async(req, res)=>{
+//изменить ToDo
+app.patch('/api/update', async(req, res)=>{
   const task=await ToDo.update(
     {
       title: req.body.title,
       description: req.body.description
     },{
     where: {
-      id: req.params.id
+      id: req.body.id
     }}
   )
   return res.status(200).json(task);
 });
 
+//удалить все записи в ToDo
 app.delete('/todos', async(req, res)=>{
   task= ToDo.destroy({
     truncate: true,
@@ -193,12 +273,14 @@ app.delete('/todos', async(req, res)=>{
   
 });
 
+//удалить ToDo по ID
 app.delete('/todos/:id', async(req, res)=>{
-   task=ToDo.destroy()
+   task=ToDo.destroy(
     {
     where: {
       id: req.params.id
-    }}
+    },
+    truncate:true})
   ;
   return res.status(200).json(task);
 });
